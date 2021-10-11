@@ -25,6 +25,7 @@ end
 # Load and map words to inflections from 2+2+3lem
 # suffix ! means neologism - keep
 # x -> [word] means a crossref, just elliminate '-> [word]' we don't care about the crossref
+# apply common filter to inflections only in case the original word doesn't pass, but the inflection does
 
 all_inflections = {}
 
@@ -35,11 +36,14 @@ total_223 = 0
 prev_word_inflections = nil
 File.foreach('2+2+3lem.txt') do |line|
   line.rstrip!
+
+  line.gsub!(/ -> \[.*?\]/, '') # elliminate cross-refs
+
   if line.start_with?(' ')
     line.strip!
-    line.split(', ').each do |s|
-      pos = s =~ / -> /
-      prev_word_inflections << (pos ? s[0...pos] : s).chomp('!')
+    line.split(', ').each do |inflection|
+      inflection.chomp!('!')
+      prev_word_inflections << inflection if !common_filter(inflection)
     end
     total_223 += prev_word_inflections.length
   else
@@ -54,6 +58,7 @@ puts "\tParsed #{total_223 + all_inflections.length} entries in #{all_inflection
 # We don't care about inflections from here, so just skip lines with them
 # Also look for suffix:
 # suffix * - crossref, keep
+# suffix ! - neologism, keep
 # word in parens - special addition, keep
 
 puts 'Parsing 2+2+3frq'
@@ -76,14 +81,13 @@ File.foreach('2+2+3frq.txt') do |line|
     # just add
     common_words << $1 if !common_filter $1
   else
+    line.chomp!('!')
     common_words << line if !common_filter(line)
     # add inflections
     inflections = all_inflections[line]
-    next if !inflections
+    next if !inflections || inflections.empty?
 
-    inflections.each do |i|
-      common_words << i if !common_filter(i)
-    end
+    common_words.merge(inflections) # they are filtered, thus safe
 
     # delete common words from all_inflections
     # they are already added to common and what remains will be for uncommon
@@ -95,6 +99,8 @@ puts "\tBuilt #{common_words.length} common words"
 
 ###
 # Load 3of6all and filter out common filer
+#
+# Also filter-out numerals (some words have them)
 #
 # Also check special suffixes
 # ^ - rare variants - keep
@@ -124,12 +130,14 @@ File.foreach('3of6all.txt') do |line|
   line.strip!
   next if common_filter(line)
 
-  next if line.downcase == prev_word # capitalized copy of prev
-
   if line.start_with?('-') || line.end_with?('-')
     pref_suf_ideas.puts line
     next
   end
+
+  next if line.downcase == prev_word # capitalized copy of prev
+
+  next if line =~ /\d/ # numerals
 
   pos = line =~ /[\^\;\&\$\:\>\+]+$/
 
@@ -149,10 +157,27 @@ end
 
 puts "\tKept #{uncommon_words.length} words"
 
+### Add uncommon words from what's left in inflections
+puts 'Merge remainder of lem into all'
+
+all_inflections.each do |w, i|
+  uncommon_words << w if !common_filter(w)
+  uncommon_words.merge(i) if i
+end
+
+puts "\tEnded up with #{uncommon_words.length} words"
+
 ### Remove common words from all we just loaded and filtered
 
 puts 'Removing common from all'
-uncommon_words -= common_words
+uncommon_words.subtract(common_words)
 puts "\t#{uncommon_words.length} uncommon words remaining"
+
+### Output
+File.open(File.join(OUT_DIR, 'dictionary.txt'), 'w') do |dic|
+  dic.puts common_words.to_a
+  dic.puts '-' * 16
+  dic.puts uncommon_words.to_a
+end
 
 
