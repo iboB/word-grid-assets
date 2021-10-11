@@ -1,8 +1,20 @@
 require 'fileutils'
 require 'set'
+require 'yaml'
 
 OUT_DIR = 'build'
 FileUtils.mkdir_p(OUT_DIR)
+
+Diactrics = YAML.load_file('diactrics-map.yml')
+
+def fix_diactrics(set)
+  Diactrics.each do |plain, pretty|
+    if set.include?(plain)
+      set.delete plain
+      set << pretty
+    end
+  end
+end
 
 # Common filter for 12 dicts
 # * Short words < 3
@@ -186,6 +198,9 @@ puts "\t#{uncommon_words.length} uncommon words remaining"
 
 ###
 # Output
+
+fix_diactrics(common_words)
+fix_diactrics(uncommon_words)
 
 puts 'Writing 12dicts.txt'
 File.open(File.join(OUT_DIR, '12dicts.txt'), 'w') do |dic|
