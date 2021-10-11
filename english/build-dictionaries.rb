@@ -197,10 +197,7 @@ uncommon_words.subtract(common_words)
 puts "\t#{uncommon_words.length} uncommon words remaining"
 
 ###
-# Output
-
-fix_diactrics(common_words)
-fix_diactrics(uncommon_words)
+# Output 12dicts
 
 puts 'Writing 12dicts.txt'
 File.open(File.join(OUT_DIR, '12dicts.txt'), 'w') do |dic|
@@ -209,4 +206,52 @@ File.open(File.join(OUT_DIR, '12dicts.txt'), 'w') do |dic|
   dic.puts uncommon_words.to_a
 end
 
+###
+# Load SOWPODS
+#
+puts 'SOWPODS'
+puts "\tloading and filtering"
+sowpods = File.readlines('sowpods.txt').map {  |s|
+  s.strip!
+  common_filter(s) ? nil : s
+}.compact.to_set
+puts "\t#{sowpods.length} loaded"
 
+def fix_caps(source, target)
+  source.each do |w|
+    if w =~ /^[A-Z]/
+      wl = w.downcase
+      if target.include?(wl)
+        target.delete wl
+        target << w
+      end
+    end
+  end
+end
+
+puts "\tfixing caps"
+fix_caps(common_words, sowpods)
+fix_caps(uncommon_words, sowpods)
+
+puts "\tremove common"
+sowpods.subtract(common_words)
+puts "\t#{sowpods.length} remaining"
+
+puts "\tadd 12 dicts uncommon"
+sowpods.merge(uncommon_words)
+uncommon_words = sowpods
+puts "\t#{uncommon_words.length} uncommon words"
+
+puts "\tfix diactrics"
+fix_diactrics(common_words)
+fix_diactrics(uncommon_words)
+
+###
+# Output final
+
+puts 'Writing sowpods+12d.txt'
+File.open(File.join(OUT_DIR, 'sowpods+12d.txt'), 'w') do |dic|
+  dic.puts common_words.to_a
+  dic.puts '-' * 16
+  dic.puts uncommon_words.to_a
+end
