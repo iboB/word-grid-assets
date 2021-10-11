@@ -6,14 +6,14 @@ FileUtils.mkdir_p(OUT_DIR)
 
 # Common filter for 12 dicts
 # * Short words < 3
-# * Long words > 20
+# * Long words > 16
 # * Phrases and phrasal verbs (with space)
 # * Caps different than plain capitalization (proper names)
 # * Short forms and abbreviations (contain '.')
 # * Options which contain '/'
 def common_filter(word)
   return true if word.length < 3 # short
-  return true if word.length > 20 # long
+  return true if word.length > 16 # long
   return true if word.include? ' ' # has spaces
   return true if word.include? '.' # has dots
   return true if word.include? '/' # option
@@ -95,6 +95,10 @@ File.foreach('2+2+3frq.txt') do |line|
   end
 end
 
+###
+# Add common contractions
+common_words.merge File.readlines('common-contractions.txt').map { |s| s.strip! }
+
 puts "\tBuilt #{common_words.length} common words"
 
 ###
@@ -128,12 +132,17 @@ pref_suf_ideas = File.open(File.join(OUT_DIR, 'prefix-suffix-ideas.txt'), 'w')
 prev_word = nil
 File.foreach('3of6all.txt') do |line|
   line.strip!
-  next if common_filter(line)
 
+  # keep common prefix and suffix
   if line.start_with?('-') || line.end_with?('-')
     pref_suf_ideas.puts line
     next
   end
+
+  next if common_filter(line)
+
+  # remove words like "A's" or "d-r"
+  next if line.length == 3 && (line.include?('-') || line.include?("'"))
 
   next if line.downcase == prev_word # capitalized copy of prev
 
@@ -157,7 +166,8 @@ end
 
 puts "\tKept #{uncommon_words.length} words"
 
-### Add uncommon words from what's left in inflections
+###
+# Add uncommon words from what's left in inflections
 puts 'Merge remainder of lem into all'
 
 all_inflections.each do |w, i|
@@ -167,14 +177,18 @@ end
 
 puts "\tEnded up with #{uncommon_words.length} words"
 
-### Remove common words from all we just loaded and filtered
+###
+# Remove common words from all we just loaded and filtered
 
 puts 'Removing common from all'
 uncommon_words.subtract(common_words)
 puts "\t#{uncommon_words.length} uncommon words remaining"
 
-### Output
-File.open(File.join(OUT_DIR, 'dictionary.txt'), 'w') do |dic|
+###
+# Output
+
+puts 'Writing 12dicts.txt'
+File.open(File.join(OUT_DIR, '12dicts.txt'), 'w') do |dic|
   dic.puts common_words.to_a
   dic.puts '-' * 16
   dic.puts uncommon_words.to_a
