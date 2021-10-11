@@ -17,14 +17,10 @@ haven't
 hadn't
 hasn't
 he'd
-he'll
 here's
 he's
-I'll
 it'll
-it's
 I've
-let's
 mustn't
 needn't
 shan't
@@ -38,9 +34,6 @@ they'd
 they'll
 they're
 they've
-we'd
-we'll
-we're
 we've
 won't
 wouldn't
