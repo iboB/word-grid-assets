@@ -28,7 +28,7 @@ end
 
 all_inflections = {}
 
-puts "Parsing 2+2+3lem"
+puts 'Parsing 2+2+3lem'
 
 total_223 = 0
 
@@ -47,34 +47,35 @@ File.foreach('2+2+3lem.txt') do |line|
   end
 end
 
-puts "Parsed #{total_223 + all_inflections.length} entries in #{all_inflections.length} keys"
+puts "\tParsed #{total_223 + all_inflections.length} entries in #{all_inflections.length} keys"
 
 ###
-# Load common words from 2+2+3cmn
-# We don't care about inflections, so just skip lines with them
-# ... except the ones added with a + suffix which are are not present in 2+2+3lem
+# Load common words from 2+2+3frq from 1 to 16
+# We don't care about inflections from here, so just skip lines with them
 # Also look for suffix:
-# * - crossref, keep
-# + - special addition, keep
+# suffix * - crossref, keep
+# word in parens - special addition, keep
 
-puts "Parsing 2+2+3cmn"
+puts 'Parsing 2+2+3frq'
 
 common_words = Set.new
 
-prevplus = false
-File.foreach('2+2+3cmn.txt') do |line|
-  line.rstrip!
-  if line.start_with?(' ')
-    next if !prevplus # getting inflections from all_inflections
-  else
-    if line.end_with?('+')
-      prevplus = true
-      line.chomp!('+')
-    else
-      line.chomp!('*')
-      prevplus = false
-    end
+File.foreach('2+2+3frq.txt') do |line|
+  if line =~ /- (\d+) -/
+    # frequency level
+    break if $1.to_i > 16
+    next # skip
+  end
 
+  line.rstrip!
+  next if line.start_with?(' ') # ignore inflections
+  line.chomp!('*')
+
+  if line =~ /\((.*)\)/
+    # word in parens - doesn't have inflections
+    # just add
+    common_words << $1 if !common_filter $1
+  else
     common_words << line if !common_filter(line)
     # add inflections
     inflections = all_inflections[line]
@@ -90,7 +91,7 @@ File.foreach('2+2+3cmn.txt') do |line|
   end
 end
 
-puts "Built #{common_words.length} common words"
+puts "\tBuilt #{common_words.length} common words"
 
 ###
 # Load 3of6all and filter out common filer
@@ -110,34 +111,48 @@ puts "Built #{common_words.length} common words"
 # non-capitalized one
 #
 # Also check if a word starts or end with '-'
-# Skip it if does, but collect it as a special
+# Skip it if does, but collect it in prefix-suffix-ideas as a special
 
-# all_words = []
+uncommon_words = Set.new
 
-# puts "Filtering 3of6all"
+puts 'Filtering 3of6all'
 
-# prev_word = nil
-# File.foreach('3of6all.txt') do |line|
-#   line.strip!
-#   next if common_filter(line)
+pref_suf_ideas = File.open(File.join(OUT_DIR, 'prefix-suffix-ideas.txt'), 'w')
 
-#   next if line.downcase == prev_word # capitalized copy of prev
+prev_word = nil
+File.foreach('3of6all.txt') do |line|
+  line.strip!
+  next if common_filter(line)
 
-#   pos = line =~ /[\^\;\&\$\:\>\+]+$/
+  next if line.downcase == prev_word # capitalized copy of prev
 
-#   # suffix
-#   if pos
-#     suffix = line[pos..]
-#     next if suffix.include? ';' # phrasal verb
-#     next if suffix.include? '$' # rare
-#     next if suffix.include? ':' # abbreviation
-#     next if suffix.include? '+' # signature phrase
-#     line = line[0...pos]
-#   end
+  if line.start_with?('-') || line.end_with?('-')
+    pref_suf_ideas.puts line
+    next
+  end
 
-#   all_words << line
-#   prev_word = line
-# end
+  pos = line =~ /[\^\;\&\$\:\>\+]+$/
 
-# puts "#{all_words.length} words remaining"
+  # suffix
+  if pos
+    suffix = line[pos..]
+    next if suffix.include? ';' # phrasal verb
+    next if suffix.include? '$' # rare
+    next if suffix.include? ':' # abbreviation
+    next if suffix.include? '+' # signature phrase
+    line = line[0...pos]
+  end
+
+  uncommon_words << line
+  prev_word = line
+end
+
+puts "\tKept #{uncommon_words.length} words"
+
+### Remove common words from all we just loaded and filtered
+
+puts 'Removing common from all'
+uncommon_words -= common_words
+puts "\t#{uncommon_words.length} uncommon words remaining"
+
 
