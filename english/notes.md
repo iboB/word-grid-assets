@@ -31,7 +31,7 @@ Ideas to improve:
         * It has no contractions
     * 2+2+2lem contians lemmatized inflections, so we can find common words in 2+2+3frq and search for inflections there
         * It also contains neologisms
-    * All the words (after filters for length and porper-noun-ness) in 12dics come to 70k. That's not enough.
+    * All the words (after filters for length and porper-noun-ness) in 12dics come to 86k. That's not enough.
 
 
 

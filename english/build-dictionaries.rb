@@ -1,3 +1,12 @@
+# the approach here is to basically load words from 12 dicts and build the common list
+# get words from sowpods and remove the common ones to get the uncommon list
+# also update words from sowpods with capitalization from 12 dicts
+# (since it's a trivial byproducs a 12dicts-only dictionary is written too)
+
+# result:
+# * 12dicts has 86k entries and seems too small and makes grids too hard
+# * SOWPODS + 12 dicts has too many entries and makes grids too easy
+
 require 'fileutils'
 require 'set'
 require 'yaml'
