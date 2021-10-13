@@ -1,6 +1,5 @@
 # data which was entered manually
 name: English
-id: english
 min_word: 3
 alphabet:
   a: 2
